@@ -1,0 +1,7 @@
+.env
+*.zip
+*.gz
+*.png
+*.sql
+*.txt
+*.rtf
