@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/joho/godotenv"
 
@@ -26,14 +27,20 @@ const (
 )
 
 func main() {
-	filepath := os.Args[1]
+	filename := os.Args[1]
 
-	if filepath == "" {
-		log.Fatal("filepath cannot be empty. Pass it as a first argument like so: `command /file/path/file.ext`")
+	if filename == "" {
+		log.Fatal("filename cannot be empty. Pass it as a first argument like so: `command /local/file/path/file.ext /do/target/path/`")
 	}
 
-	if !fileExists(filepath) {
-		log.Fatalf("file doesnt exist, %s", filepath)
+	if !fileExists(filename) {
+		log.Fatalf("file doesnt exist, %s", filename)
+	}
+
+	remotepath := os.Args[2]
+
+	if remotepath == "" {
+		log.Fatal("do_target_path cannot be empty. Pass it as a second argument like so: `command /local/file/path/file.ext /do/target/path/`")
 	}
 
 	err := godotenv.Load()
@@ -42,7 +49,7 @@ func main() {
 		log.Fatal("No .env file detected")
 	}
 
-	file, err := os.Open(filepath)
+	file, err := os.Open(filename)
 	if err != nil {
 		fmt.Printf("err opening file: %s", err)
 		return
@@ -68,7 +75,7 @@ func main() {
 
 	svc := s3.New(session.New(), cfg)
 
-	path := "/backup/" + file.Name()
+	path := filepath.Join("/", remotepath, file.Name())
 	input := &s3.CreateMultipartUploadInput{
 		Bucket:      aws.String(env.Env("DO_S3_BUCKET", "backup")),
 		Key:         aws.String(path),
