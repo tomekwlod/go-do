@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/gabriel-vasile/mimetype"
 	"github.com/joho/godotenv"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -15,8 +16,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-
-	"github.com/gabriel-vasile/mimetype"
 
 	"github.com/tomekwlod/utils/env"
 )
@@ -49,20 +48,6 @@ func main() {
 		log.Fatal("No .env file detected")
 	}
 
-	file, err := os.Open(filename)
-	if err != nil {
-		fmt.Printf("err opening file: %s", err)
-		return
-	}
-	defer file.Close()
-
-	fileInfo, _ := file.Stat()
-	size := fileInfo.Size()
-	buffer := make([]byte, size)
-	contentType, err := mimetype.DetectReader(file)
-	// contentType, err := GetFileContentType(file)
-	file.Read(buffer)
-
 	creds := credentials.NewStaticCredentials(env.Env("DO_S3_KEY", ""), env.Env("DO_S3_SECRET", ""), "")
 	_, err = creds.Get()
 	if err != nil {
@@ -74,6 +59,30 @@ func main() {
 	}
 
 	svc := s3.New(session.New(), cfg)
+
+	file, err := os.Open(filename)
+	if err != nil {
+		fmt.Printf("err opening file: %s", err)
+		return
+	}
+	defer file.Close()
+
+	fileInfo, _ := file.Stat()
+	size := fileInfo.Size()
+	buffer := make([]byte, size)
+
+	// contentType, err := GetFileContentType(file)
+	// contentType := http.DetectContentType(buffer)
+
+	// reading the content type will result in Seek to be in a wrong position
+	// we have to then reset the position with file.Seek(0,0)
+	contentType, err := mimetype.DetectReader(file)
+	_, err = file.Seek(0, 0)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	file.Read(buffer)
 
 	path := filepath.Join("/", remotepath, file.Name())
 	input := &s3.CreateMultipartUploadInput{
