@@ -1,0 +1,2 @@
+taken from here: https://github.com/apoorvam/aws-s3-multipart-upload/blob/master/aws-multipart-upload.go
+to upload to onedrive try this: https://www.example-code.com/golang/onedrive_upload_large_files.asp
